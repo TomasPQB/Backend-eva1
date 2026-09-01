@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Reserva de Canchas</title>
+    <style>
+        :root {
+            font-family: Arial, sans-serif;
+            color: #17202a;
+            background: #eef3f7;
+        }
+
+        body {
+            margin: 0;
+            padding: 32px 16px;
+        }
+
+        main {
+            max-width: 920px;
+            margin: auto;
+        }
+
+        header {
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            color: #123b5d;
+            margin-bottom: 8px;
+        }
+
+        h2 {
+            color: #176b87;
+            margin-top: 0;
+        }
+
+        section {
+            background: white;
+            padding: 24px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px #0001;
+        }
+
+        form {
+            display: grid;
+            gap: 12px;
+            max-width: 420px;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input,
+        button {
+            box-sizing: border-box;
+            padding: 10px;
+            font: inherit;
+        }
+
+        button {
+            color: white;
+            background: #176b87;
+            border: 0;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #12566d;
+        }
+
+        .boton-borrar {
+            background: #b53b32;
+            margin-top: 16px;
+        }
+
+        .boton-borrar:hover {
+            background: #8f2d27;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid #d9e2e8;
+        }
+
+        th {
+            color: #123b5d;
+        }
+
+        .estado-aceptada {
+            color: #25834d;
+            font-weight: bold;
+        }
+
+        .estado-rechazada,
+        .estado-invalido {
+            color: #b53b32;
+            font-weight: bold;
+        }
+
+        .resultado {
+            background: #e5f3e9;
+            border-left: 4px solid #25834d;
+            margin-top: 20px;
+            padding: 12px;
+        }
+
+        .error {
+            background: #fde9e7;
+            border-left: 4px solid #b53b32;
+            padding: 12px;
+        }
+
+        .disponibilidad {
+            color: #123b5d;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            section {
+                padding: 16px;
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <header>
+            <h1>Sistema de Reserva de Canchas</h1>
+            <p>Consulta las reservas realizadas y su estado.</p>
+        </header>
+
+        <section>
+            <h2>Nueva reserva</h2>
+            <form method="post">
+                {% csrf_token %}
+                <label for="nombre">Nombre</label>
+                <input id="nombre" name="nombre" required>
+
+                <label for="horas">Horas</label>
+                <input id="horas" name="horas" type="number" required>
+
+                <button type="submit">Reservar cancha</button>
+            </form>
+
+            {% if error %}
+                <p class="error">{{ error }}</p>
+            {% endif %}
+
+            {% if registro %}
+                <div class="resultado">
+                    <strong>{{ registro.estado }}</strong><br>
+                    {{ registro.motivo }}
+                </div>
+            {% endif %}
+        </section>
+
+        <section>
+            <h2>Reservas registradas</h2>
+            {% if registros %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Horas solicitadas</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reserva in registros %}
+                            <tr>
+                                <td>{{ reserva.nombre }}</td>
+                                <td>{{ reserva.horas }}</td>
+                                <td>
+                                    <span class="{% if reserva.estado == 'Reserva aceptada' %}estado-aceptada{% elif reserva.estado == 'Dato inválido' %}estado-invalido{% else %}estado-rechazada{% endif %}">
+                                        {{ reserva.estado }}{% if reserva.estado != 'Reserva aceptada' %}: {{ reserva.motivo }}{% endif %}
+                                    </span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>Todavía no hay solicitudes registradas.</p>
+            {% endif %}
+            <form method="post" onsubmit="return confirm('¿Borrar todas las reservas registradas?');">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="borrar">
+                <button class="boton-borrar" type="submit">Borrar todas las reservas</button>
+            </form>
+        </section>
+
+        <section class="disponibilidad">
+            Canchas disponibles: {{ canchas_disponibles }} de {{ total_canchas }}
+        </section>
+    </main>
+</body>
+</html>
