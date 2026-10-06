@@ -1,0 +1,15 @@
+﻿{% extends "core/base.html" %}
+
+{% block content %}
+<div class="panel">
+    <h2>Confirmar eliminación</h2>
+    <p>¿Seguro que deseas eliminar la reserva de {{ reserva.nombre }}?</p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="actions">
+            <button class="boton danger" type="submit">Eliminar</button>
+            <a class="boton" href="{% url 'lista' %}">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

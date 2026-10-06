@@ -1,0 +1,27 @@
+﻿{% extends "core/base.html" %}
+
+{% block content %}
+<div class="panel">
+    <h2>{{ accion }} reserva</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        <label for="{{ form.nombre.id_for_label }}">{{ form.nombre.label }}</label>
+        {{ form.nombre }}
+        {% for error in form.nombre.errors %}
+            <div class="error">{{ error }}</div>
+        {% endfor %}
+
+        <label for="{{ form.horas.id_for_label }}">{{ form.horas.label }}</label>
+        {{ form.horas }}
+        {% for error in form.horas.errors %}
+            <div class="error">{{ error }}</div>
+        {% endfor %}
+
+        <div class="actions">
+            <button class="boton" type="submit">Guardar</button>
+            <a class="boton" href="{% url 'lista' %}">Volver</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

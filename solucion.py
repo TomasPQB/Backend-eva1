@@ -1,4 +1,4 @@
-import json
+﻿import json
 from pathlib import Path
 from tabulate import tabulate
 
@@ -22,12 +22,13 @@ def guardar_registros(registros):
 def decidir_reserva(nombre, horas, canchas_disponibles):
     if horas <= 0:
         return "Dato inválido", "La cantidad de horas debe ser mayor que cero."
-    elif horas > MAXIMO_HORAS:
+    if horas > MAXIMO_HORAS:
         return "Reserva rechazada", "Supera el máximo permitido de dos horas."
-    elif canchas_disponibles <= 0:
+    if canchas_disponibles <= 0:
         return "Reserva rechazada", "No quedan canchas disponibles."
-    elif horas > 0 and horas <= MAXIMO_HORAS and canchas_disponibles > 0:
+    if horas > 0 and horas <= MAXIMO_HORAS and canchas_disponibles > 0:
         return "Reserva aceptada", "La solicitud cumple las condiciones."
+    return "Reserva rechazada", "La solicitud no cumple las condiciones."
 
 
 def registrar_reserva(nombre, horas):
