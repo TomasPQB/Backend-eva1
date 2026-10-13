@@ -81,12 +81,19 @@ por usuario y rol.
    Las pruebas usan una base temporal e incluyen datos de prueba, validaciones,
    CSRF, login/logout, acceso directo a URL protegidas y borrado lógico.
 
+6. Preparar la entrega sin datos ni credenciales locales. Crear el ZIP solo con
+   los archivos del proyecto y excluir expresamente `.env`, `env/`, `db.sqlite3`,
+   `.git/` y `__pycache__/`. El `.gitignore` ayuda a controlar Git, pero no filtra
+   automáticamente archivos al crear un ZIP desde el explorador.
+
 ## Configuración para producción
 
 No usar `DEBUG=True`. Definir `ALLOWED_HOSTS` con los dominios reales y servir la
 aplicación exclusivamente por HTTPS: con `DEBUG=False`, Django activa la redirección
 a HTTPS y las cookies de sesión y CSRF seguras. No incluir `db.sqlite3`, `.env` ni
-contraseñas reales en el repositorio.
+contraseñas reales en el repositorio ni en el paquete ZIP. Si algún archivo con
+credenciales o una base con usuarios reales ya se compartió, cambiar la `SECRET_KEY`
+y las contraseñas comprometidas; excluirlos después no revoca los valores filtrados.
 
 ## Datos y seguridad
 

@@ -10,7 +10,7 @@ class ReservaForm(forms.ModelForm):
         labels = {"nombre": "Nombre", "horas": "Horas"}
         widgets = {
             "nombre": forms.TextInput(attrs={"maxlength": 100, "required": True}),
-            "horas": forms.NumberInput(attrs={"required": True}),
+            "horas": forms.NumberInput(attrs={"min": 1, "required": True}),
         }
 
     def clean_nombre(self):
