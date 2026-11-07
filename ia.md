@@ -53,3 +53,37 @@ Las decisiones se comprobaron con `manage.py check`, la verificación de
 migraciones y las pruebas de `core`. La herramienta ayudó a identificar cambios
 posibles; la selección final se basó en los requerimientos de Eva2 y en los
 resultados observables del proyecto.
+
+## Evaluación ES3: API, autenticación y permisos
+
+**Consulta:** “A partir de las instrucciones y la rúbrica ES3, completa la API
+sin quitar el CRUD HTML, aplica seguridad y dime qué dependencias faltan.”
+
+**Recomendación generada para este proyecto:** usar DRF con un serializer de
+campos permitidos explícitamente, JWT con expiración y rotación de refresh,
+permisos por rol, paginación, documentación OpenAPI y pruebas HTTP. Reutilizar
+la decisión de negocio y el borrado lógico existentes en vez de duplicarlos.
+
+**Qué adopté y por qué:** adopté JWT porque la pauta valora expiración o
+refresco; el access token dura 10 minutos, el refresh dura un día y la rotación
+invalida el refresh anterior. Los endpoints de reservas requieren autenticación:
+`viewer` consulta, `normal` y `admin` crean, y solo `admin`/`is_staff` modifica
+o elimina. El serializer limita los campos y deja `estado`, `motivo` y `fecha`
+como solo lectura. Paginación de 10, búsqueda, orden y esquema OpenAPI completan
+la configuración, y los tests comprueban sus respuestas.
+
+**Qué descarté y qué estaba mal:** no habilité `AllowAny` en las reservas para
+facilitar pruebas ni di permisos de escritura a cualquier usuario autenticado;
+eso abriría datos u operaciones a roles que en ES2 son de solo lectura. Aclaro
+que `AllowAny` fue una alternativa de seguridad evaluada, no una recomendación
+que esta conversación haya atribuido a la herramienta. También descarté hacer
+editable el estado porque permitiría al cliente saltarse la regla de decisión.
+
+**Verificación y decisión propia:** mantuve el comportamiento de ES2 para horas
+no positivas: la regla las registra como `Dato inválido`, en lugar de cambiar
+silenciosamente esa lógica a un error HTTP. La API devuelve `400` para errores
+de formato/campos y `201` cuando la regla procesa la solicitud, incluso si su
+estado de negocio es inválido. Añadí pruebas para ambos casos, roles, rotación
+JWT, paginación, borrado lógico, `404` y esquema. La recomendación de IA no se
+consideró evidencia por sí sola; se contrastó con la implementación y las
+pruebas.

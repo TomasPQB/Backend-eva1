@@ -13,6 +13,8 @@ por usuario y rol.
 - `solucion.py` conserva la función `decidir_reserva()` original; las vistas la
   reutilizan y no duplican sus reglas.
 - El CRUD web ofrece listar, crear, editar y eliminar lógicamente reservas.
+- La API REST de ES3 expone el mismo recurso con DRF, JWT con expiración y
+  refresco, permisos por rol, paginación, búsqueda y documentación OpenAPI.
 - Los grupos `admin`, `normal` y `viewer` definen los permisos de la aplicación.
 - Django Admin permite buscar, filtrar y gestionar las reservas.
 - Login, cierre de sesión por POST, sesiones Django, CSRF, validación de formularios
@@ -79,7 +81,8 @@ por usuario y rol.
    ```
 
    Las pruebas usan una base temporal e incluyen datos de prueba, validaciones,
-   CSRF, login/logout, acceso directo a URL protegidas y borrado lógico.
+   CSRF, login/logout, acceso directo a URL protegidas, borrado lógico y
+   autenticación, permisos y respuestas de la API.
 
 6. Preparar la entrega sin datos ni credenciales locales. Crear el ZIP solo con
    los archivos del proyecto y excluir expresamente `.env`, `env/`, `db.sqlite3`,

@@ -6,10 +6,11 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from solucion import TOTAL_CANCHAS, decidir_reserva
+from solucion import TOTAL_CANCHAS
 
 from .forms import ReservaForm
 from .models import Reserva
+from .services import resultado_reserva
 
 
 def tiene_rol(user, *roles):
@@ -33,14 +34,10 @@ def requiere_rol(*roles):
 
 def _guardar_reserva(form):
     reserva = form.save(commit=False)
-    reservas_aceptadas = Reserva.objects.filter(
-        eliminado=False, estado="Reserva aceptada"
-    )
-    if reserva.pk:
-        reservas_aceptadas = reservas_aceptadas.exclude(pk=reserva.pk)
-    canchas_disponibles = TOTAL_CANCHAS - reservas_aceptadas.count()
-    reserva.estado, reserva.motivo = decidir_reserva(
-        reserva.nombre, reserva.horas, canchas_disponibles
+    reserva.estado, reserva.motivo = resultado_reserva(
+        reserva.nombre,
+        reserva.horas,
+        reserva_id=reserva.pk,
     )
     reserva.save()
     return reserva

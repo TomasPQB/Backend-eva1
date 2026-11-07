@@ -7,6 +7,8 @@ from django.core.management.base import CommandError
 from django.test import Client, TestCase
 from django.urls import reverse
 
+from rest_framework.test import APIClient
+
 from core.admin import ReservaAdminForm
 from core.models import Reserva
 from solucion import decidir_reserva
@@ -222,6 +224,169 @@ class ReservaAccessTest(TestCase):
         )
         self.assertEqual(response.status_code, 403)
         self.assertEqual(Reserva.objects.count(), 0)
+
+
+class ReservaAPITest(TestCase):
+    password = "Test-Only-Password-2026!"
+
+    def setUp(self):
+        admin_group, _ = Group.objects.get_or_create(name="admin")
+        normal_group, _ = Group.objects.get_or_create(name="normal")
+        viewer_group, _ = Group.objects.get_or_create(name="viewer")
+        self.admin = User.objects.create_user(
+            username="api_admin",
+            password=self.password,
+            is_staff=True,
+        )
+        self.admin.groups.add(admin_group)
+        self.normal = User.objects.create_user(
+            username="api_normal",
+            password=self.password,
+        )
+        self.normal.groups.add(normal_group)
+        self.viewer = User.objects.create_user(
+            username="api_viewer",
+            password=self.password,
+        )
+        self.viewer.groups.add(viewer_group)
+        self.client = APIClient()
+
+    def autenticar(self, user):
+        response = self.client.post(
+            reverse("token_obtain_pair"),
+            {"username": user.username, "password": self.password},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {response.data['access']}"
+        )
+        return response.data
+
+    def test_api_exige_jwt_y_responde_json(self):
+        response = self.client.get(reverse("reserva-list"))
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response["Content-Type"], "application/json")
+
+    def test_token_tiene_refresco_y_rota_el_refresh_token(self):
+        tokens = self.autenticar(self.normal)
+        refresh_response = self.client.post(
+            reverse("token_refresh"),
+            {"refresh": tokens["refresh"]},
+            format="json",
+        )
+        self.assertEqual(refresh_response.status_code, 200)
+        self.assertIn("access", refresh_response.data)
+        self.assertNotEqual(refresh_response.data["refresh"], tokens["refresh"])
+
+        old_refresh_response = self.client.post(
+            reverse("token_refresh"),
+            {"refresh": tokens["refresh"]},
+            format="json",
+        )
+        self.assertEqual(old_refresh_response.status_code, 401)
+
+    def test_roles_crud_y_regla_de_negocio(self):
+        reserva = crear_reserva()
+        self.autenticar(self.viewer)
+        self.assertEqual(
+            self.client.get(reverse("reserva-list")).status_code, 200
+        )
+        self.assertEqual(
+            self.client.post(
+                reverse("reserva-list"),
+                {"nombre": "No autorizado", "horas": 1},
+                format="json",
+            ).status_code,
+            403,
+        )
+
+        self.client.credentials()
+        self.autenticar(self.normal)
+        create_response = self.client.post(
+            reverse("reserva-list"),
+            {
+                "nombre": "Nueva reserva",
+                "horas": 1,
+                "estado": "Reserva aceptada",
+            },
+            format="json",
+        )
+        self.assertEqual(create_response.status_code, 201)
+        self.assertEqual(create_response.data["estado"], "Reserva aceptada")
+        self.assertNotIn("eliminado", create_response.data)
+        reserva_nueva = Reserva.objects.get(nombre="Nueva reserva")
+
+        self.client.credentials()
+        self.autenticar(self.normal)
+        update_response = self.client.patch(
+            reverse("reserva-detail", args=[reserva_nueva.pk]),
+            {"horas": 3},
+            format="json",
+        )
+        self.assertEqual(update_response.status_code, 403)
+
+        self.client.credentials()
+        self.autenticar(self.admin)
+        update_response = self.client.patch(
+            reverse("reserva-detail", args=[reserva_nueva.pk]),
+            {"horas": 3},
+            format="json",
+        )
+        self.assertEqual(update_response.status_code, 200)
+        self.assertEqual(update_response.data["estado"], "Reserva rechazada")
+        self.assertIn("dos horas", update_response.data["motivo"])
+
+        delete_response = self.client.delete(
+            reverse("reserva-detail", args=[reserva.pk])
+        )
+        self.assertEqual(delete_response.status_code, 204)
+        reserva.refresh_from_db()
+        self.assertTrue(reserva.eliminado)
+
+    def test_validacion_devuelve_error_claro_y_horas_cero_sigue_la_regla(self):
+        self.autenticar(self.normal)
+        invalid_response = self.client.post(
+            reverse("reserva-list"),
+            {"nombre": "   ", "horas": 1},
+            format="json",
+        )
+        self.assertEqual(invalid_response.status_code, 400)
+        self.assertIn("nombre", invalid_response.data)
+
+        business_rule_response = self.client.post(
+            reverse("reserva-list"),
+            {"nombre": "Horas inválidas", "horas": 0},
+            format="json",
+        )
+        self.assertEqual(business_rule_response.status_code, 201)
+        self.assertEqual(business_rule_response.data["estado"], "Dato inválido")
+
+    def test_paginacion_busqueda_y_recurso_inexistente(self):
+        self.autenticar(self.normal)
+        for index in range(12):
+            crear_reserva(nombre=f"Consulta {index}", estado="Reserva aceptada")
+
+        page_response = self.client.get(reverse("reserva-list"))
+        self.assertEqual(page_response.status_code, 200)
+        self.assertEqual(page_response.data["count"], 12)
+        self.assertEqual(len(page_response.data["results"]), 10)
+        self.assertIsNotNone(page_response.data["next"])
+
+        search_response = self.client.get(
+            reverse("reserva-list"), {"search": "Consulta 4"}
+        )
+        self.assertEqual(search_response.data["count"], 1)
+
+        missing_response = self.client.get(
+            reverse("reserva-detail", args=[999999])
+        )
+        self.assertEqual(missing_response.status_code, 404)
+
+    def test_documentacion_openapi_es_publica(self):
+        response = self.client.get(reverse("schema"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("/api/reservas/", response.data["paths"])
 
 
 class SetupRolesCommandTest(TestCase):

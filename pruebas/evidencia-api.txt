@@ -1,0 +1,27 @@
+Verificacion automatizada de la API
+===================================
+
+Comando ejecutado:
+.\env\Scripts\python.exe manage.py test core.tests.ReservaAPITest
+
+Resultado observado:
+Ran 6 tests in 7.862s
+OK
+System check identified no issues (0 silenced).
+
+Casos HTTP comprobados por ReservaAPITest:
+- GET /api/reservas/ sin credencial: 401 y respuesta JSON.
+- POST /api/token/ y POST /api/token/refresh/: 200; el refresh anterior
+  queda invalidado tras la rotacion y responde 401.
+- GET con rol viewer: 200; POST con rol viewer: 403.
+- POST con rol normal: 201; el estado enviado por el cliente no reemplaza
+  el resultado calculado en el servidor.
+- PATCH con rol normal: 403; PATCH con rol admin: 200 y recalcula el estado.
+- DELETE con rol admin: 204 y conserva el registro con borrado logico.
+- POST con nombre vacio: 400; horas cero siguen la regla ES2 y responden
+  201 con estado "Dato inválido".
+- GET paginado: 200, 10 resultados por pagina y enlace a la siguiente.
+- Busqueda: 200 con coincidencia; id inexistente: 404.
+- GET /api/schema/: 200 y contiene la ruta /api/reservas/.
+
+No se guardaron usuarios, contraseñas ni tokens en esta evidencia.
